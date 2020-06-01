@@ -1,0 +1,58 @@
+import chainer
+import chainer.links as L
+import chainer.functions as F
+
+import numpy as np
+
+
+class _Actor(chainer.Chain):
+    def save(self, path):
+        if path.exists():
+            raise ValueError('File already exist')
+        chainer.serializers.save_npz(path.resolve(), self)
+
+    def load(self, path):
+        if not path.exists():
+            raise ValueError('File {} not found'.format(path))
+        chainer.serializers.load_npz(path.resolve(), self)
+
+
+class MujocoActor(_Actor):
+    def __init__(self, state_dim, action_dim):
+        super(MujocoActor, self).__init__()
+        with self.init_scope():
+            self._linear1 = L.Linear(in_size=(state_dim), out_size=256)
+            self._linear2 = L.Linear(in_size=256, out_size=256)
+            self._linear_mu = L.Linear(in_size=256, out_size=action_dim)
+            self._linear_ln_var = L.Linear(in_size=256, out_size=action_dim)
+
+    def __call__(self, s, a):
+        h = F.concat((s, a))
+        h = self._linear1(h)
+        h = F.relu(h)
+        h = self._linear2(h)
+        h = F.relu(h)
+        mu = self._linear_mu(h)
+        ln_var = self._linear_ln_var(h)
+
+        x = F.gaussian(mu, ln_var)
+        # log_pi
+        # = log(N(x|mu, var)*(arctanh(tanh(x))')
+        # = logN(x|mu, var) + log(arctanh(tanh(x))')
+        log_pi = \
+            self._log_normal(x, mu, F.exp(ln_var), ln_var) - \
+            self._forward_log_det_jacobian(x)
+        y = F.tanh(x)
+        return y, F.sum(log_pi, axis=1)
+
+    def _log_normal(self, x, mean, var, ln_var):
+        # log N(x|mu, var)
+        # = -0.5*log2*pi - 0.5 * ln_var - 0.5 * (x-mu)**2 / var
+        return -0.5 * np.log(2 * np.pi) - 0.5 * ln_var - 0.5 * (x-mean) ** 2 / var, axis = -1
+
+    def _forward_log_det_jacobian(self, x):
+        # arctanh(y)' = 1/(1 - y^2) (y=tanh(x))
+        # Below computes log(1 - tanh(x)^2)
+        # For derivation see:
+        # https://github.com/tensorflow/probability/blob/master/tensorflow_probability/python/bijectors/tanh.py
+        return 2.0 * (np.log(2.0) - x - F.softplus(-2.0 * x))
