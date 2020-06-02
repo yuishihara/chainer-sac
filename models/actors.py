@@ -26,15 +26,14 @@ class MujocoActor(_Actor):
             self._linear_mu = L.Linear(in_size=256, out_size=action_dim)
             self._linear_ln_var = L.Linear(in_size=256, out_size=action_dim)
 
-    def __call__(self, s, a):
-        h = F.concat((s, a))
-        h = self._linear1(h)
-        h = F.relu(h)
-        h = self._linear2(h)
-        h = F.relu(h)
-        mu = self._linear_mu(h)
-        ln_var = self._linear_ln_var(h)
+    def __call__(self, s):
+        mu, ln_var = self._mu_and_ln_var(s)
+        x = F.gaussian(mu, ln_var)
+        y = F.tanh(x)
+        return y
 
+    def action_with_log_pi(self, s):
+        mu, ln_var = self._mu_and_ln_var(s)
         x = F.gaussian(mu, ln_var)
         # log_pi
         # = log(N(x|mu, var)*(arctanh(tanh(x))')
@@ -45,10 +44,20 @@ class MujocoActor(_Actor):
         y = F.tanh(x)
         return y, F.sum(log_pi, axis=1)
 
+    def _mu_and_ln_var(self, s):
+        h = self._linear1(s)
+        h = F.relu(h)
+        h = self._linear2(h)
+        h = F.relu(h)
+        mu = self._linear_mu(h)
+        ln_var = self._linear_ln_var(h)
+
+        return mu, ln_var
+
     def _log_normal(self, x, mean, var, ln_var):
         # log N(x|mu, var)
         # = -0.5*log2*pi - 0.5 * ln_var - 0.5 * (x-mu)**2 / var
-        return -0.5 * np.log(2 * np.pi) - 0.5 * ln_var - 0.5 * (x-mean) ** 2 / var, axis = -1
+        return -0.5 * np.log(2 * np.pi) - 0.5 * ln_var - 0.5 * (x-mean) ** 2 / var
 
     def _forward_log_det_jacobian(self, x):
         # arctanh(y)' = 1/(1 - y^2) (y=tanh(x))
