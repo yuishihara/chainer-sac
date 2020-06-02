@@ -38,6 +38,8 @@ class MujocoActor(_Actor):
         # log_pi
         # = log(N(x|mu, var)*(arctanh(tanh(x))')
         # = logN(x|mu, var) + log(arctanh(tanh(x))')
+        mu = chainer.Variable(mu.array)
+        ln_var = chainer.Variable(ln_var.array)
         log_pi = \
             self._log_normal(x, mu, F.exp(ln_var), ln_var) - \
             self._forward_log_det_jacobian(x)

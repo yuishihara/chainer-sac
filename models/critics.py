@@ -33,6 +33,7 @@ class VFunction(_Critic):
 
 class QFunction(_Critic):
     def __init__(self, state_dim, action_dim):
+        super(QFunction, self).__init__()
         with self.init_scope():
             self._linear1 = L.Linear(
                 in_size=(state_dim+action_dim), out_size=256)
