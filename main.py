@@ -86,7 +86,7 @@ def run_training_loop(train_env, eval_env, sac, args):
     algorithm_name = 'ExtendedSAC' if args.extended else 'OriginalSAC'
     base_dir = args.outdir + '/' + algorithm_name
     outdir = prepare_output_dir(base_dir=base_dir, args=args)
-    summarydir = prepare_summary_dir(base_dir=args.outdir)
+    summarydir = prepare_summary_dir(base_dir=base_dir)
 
     writer = SummaryWriter(logdir=summarydir)
 
