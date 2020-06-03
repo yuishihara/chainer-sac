@@ -47,6 +47,8 @@ class SAC(object):
         self._replay_buffer = []
 
     def train(self, env):
+        if not self._initialized:
+            self._initialize_target_networks()
         for _ in range(self._environment_steps):
             experience = self._perform_environment_step(env)
             self._replay_buffer.append(experience)
