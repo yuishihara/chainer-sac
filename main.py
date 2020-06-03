@@ -12,7 +12,8 @@ from wrapper import NumpyFloat32Env, ScreenRenderEnv
 
 from tensorboardX import SummaryWriter
 
-from sac import SAC
+from sac import SAC as OriginalSAC
+from sac_extended import SAC as ExtendedSAC
 from models.actors import MujocoActor
 from models.critics import QFunction, VFunction
 
@@ -68,8 +69,12 @@ def prepare_summary_dir(base_dir, time_format='%Y-%m-%d-%H%M%S'):
 
 def load_params(sac, args):
     print('loading model params')
-    sac.load_models(args.v_params, args.q1_params,
-                    args.q2_params, args.pi_params)
+    if args.extended:
+        sac.load_models(args.q1_params, args.q2_params,
+                        args.pi_params, args.alpha_params)
+    else:
+        sac.load_models(args.v_params, args.q1_params,
+                        args.q2_params, args.pi_params)
 
 
 def save_params(sac, timestep, outdir, args):
@@ -109,19 +114,33 @@ def v_func_builder(state_dim):
 def start_training(args):
     train_env = build_env(args)
     eval_env = build_env(args)
-    sac = SAC(
-        v_func_builder=v_func_builder,
-        q_func_builder=q_func_builder,
-        pi_builder=pi_builder,
-        state_dim=train_env.observation_space.shape[0],
-        action_dim=train_env.action_space.shape[0],
-        lr=args.learning_rate,
-        gamma=args.gamma,
-        tau=args.tau,
-        batch_size=args.batch_size,
-        environment_steps=args.environment_steps,
-        gradient_steps=args.gradient_steps,
-        device=args.gpu)
+    if args.extended:
+        sac = ExtendedSAC(
+            q_func_builder=q_func_builder,
+            pi_builder=pi_builder,
+            state_dim=train_env.observation_space.shape[0],
+            action_dim=train_env.action_space.shape[0],
+            lr=args.learning_rate,
+            gamma=args.gamma,
+            tau=args.tau,
+            batch_size=args.batch_size,
+            environment_steps=args.environment_steps,
+            gradient_steps=args.gradient_steps,
+            device=args.gpu)
+    else:
+        sac = OriginalSAC(
+            v_func_builder=v_func_builder,
+            q_func_builder=q_func_builder,
+            pi_builder=pi_builder,
+            state_dim=train_env.observation_space.shape[0],
+            action_dim=train_env.action_space.shape[0],
+            lr=args.learning_rate,
+            gamma=args.gamma,
+            tau=args.tau,
+            batch_size=args.batch_size,
+            environment_steps=args.environment_steps,
+            gradient_steps=args.gradient_steps,
+            device=args.gpu)
     load_params(sac, args)
 
     run_training_loop(train_env, eval_env, sac, args)
@@ -152,6 +171,8 @@ def main():
     parser.add_argument('--q1-params', type=str, default="")
     parser.add_argument('--q2-params', type=str, default="")
     parser.add_argument('--pi-params', type=str, default="")
+    parser.add_argument('--alpha-params', type=str, default="")
+    parser.add_argument('--extended', action="store_true")
 
     # Training parameters
     parser.add_argument('--total-timesteps', type=int, default=1000000)
