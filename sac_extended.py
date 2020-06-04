@@ -78,7 +78,7 @@ class SAC(object):
         self._state = None
         self._replay_buffer = deque(maxlen=1000000)
         self._initialized = False
-        self._start_timestpes = start_timesteps
+        self._start_timesteps = start_timesteps
 
         self._temperature_target = \
             -np.float(action_dim) if temperature_target is None else np.float(temperature_target)
