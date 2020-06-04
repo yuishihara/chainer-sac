@@ -76,7 +76,7 @@ class SAC(object):
         self._batch_size = batch_size
 
         self._state = None
-        self._replay_buffer = deque(maxlen=100000)
+        self._replay_buffer = deque(maxlen=1000000)
         self._initialized = False
 
         self._temperature_target = \
