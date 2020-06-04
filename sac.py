@@ -46,7 +46,7 @@ class SAC(object):
         self._gradient_steps = gradient_steps
         self._batch_size = batch_size
         self._start_timesteps = start_timesteps
-        self._reward_scale = reward_scale
+        self._reward_scale = np.float32(reward_scale)
 
         self._state = None
         self._replay_buffer = deque(maxlen=1000000)
