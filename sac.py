@@ -14,7 +14,7 @@ from chainer.dataset import concat_examples
 
 class SAC(object):
     def __init__(self, v_func_builder, q_func_builder, pi_builder, state_dim, action_dim, *,
-                 gamma=0.99, tau=0.005, lr=3.0e-4, batch_size=256, environment_steps=1, gradient_steps=1, device=-1):
+                 gamma=0.99, tau=0.005, lr=3.0e-4, batch_size=256, environment_steps=1, gradient_steps=1, start_timesteps=10000, device=-1):
         self._v = v_func_builder(state_dim)
         self._v_target = v_func_builder(state_dim)
         self._q1 = q_func_builder(state_dim, action_dim)
@@ -44,6 +44,7 @@ class SAC(object):
         self._environment_steps = environment_steps
         self._gradient_steps = gradient_steps
         self._batch_size = batch_size
+        self._start_timesteps = start_timesteps
 
         self._state = None
         self._replay_buffer = deque(maxlen=1000000)
@@ -55,7 +56,7 @@ class SAC(object):
         for _ in range(self._environment_steps):
             experience = self._perform_environment_step(env)
             self._replay_buffer.append(experience)
-        if len(self._replay_buffer) < 1000:
+        if len(self._replay_buffer) < self._start_timesteps:
             return
         iterator = self._prepare_iterator(self._replay_buffer)
         for _ in range(self._gradient_steps):

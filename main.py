@@ -128,6 +128,7 @@ def start_training(args):
             batch_size=args.batch_size,
             environment_steps=args.environment_steps,
             gradient_steps=args.gradient_steps,
+            start_timesteps=args.start_timesteps,
             device=args.gpu)
     else:
         sac = OriginalSAC(
@@ -142,6 +143,7 @@ def start_training(args):
             batch_size=args.batch_size,
             environment_steps=args.environment_steps,
             gradient_steps=args.gradient_steps,
+            start_timesteps=args.start_timesteps,
             device=args.gpu)
     load_params(sac, args)
 
@@ -182,7 +184,7 @@ def main():
     parser.add_argument('--gamma', type=float, default=0.99)
     parser.add_argument('--tau', type=float, default=0.005)
     parser.add_argument('--batch-size', type=int, default=256)
-    parser.add_argument('--start-timesteps', type=int, default=1000)
+    parser.add_argument('--start-timesteps', type=int, default=10000)
     parser.add_argument('--environment-steps', type=int, default=1)
     parser.add_argument('--gradient-steps', type=int, default=1)
     parser.add_argument('--evaluation-interval', type=float, default=5000)

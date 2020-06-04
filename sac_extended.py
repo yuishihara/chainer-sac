@@ -42,7 +42,7 @@ class AdjustableTemperature(chainer.Chain):
 class SAC(object):
     def __init__(self, q_func_builder, pi_builder, state_dim, action_dim, *,
                  gamma=0.99, tau=0.005, lr=3.0e-4, batch_size=256, environment_steps=1, gradient_steps=1,
-                 initial_temperature=1.0, temperature_target=None, device=-1):
+                 initial_temperature=1.0, temperature_target=None, start_timesteps=10000, device=-1):
         self._q1 = q_func_builder(state_dim, action_dim)
         self._q2 = q_func_builder(state_dim, action_dim)
         self._target_q1 = q_func_builder(state_dim, action_dim)
@@ -78,6 +78,7 @@ class SAC(object):
         self._state = None
         self._replay_buffer = deque(maxlen=1000000)
         self._initialized = False
+        self._start_timestpes = start_timesteps
 
         self._temperature_target = \
             -np.float(action_dim) if temperature_target is None else np.float(temperature_target)
@@ -88,7 +89,7 @@ class SAC(object):
         for _ in range(self._environment_steps):
             experience = self._perform_environment_step(env)
             self._replay_buffer.append(experience)
-        if len(self._replay_buffer) < 1000:
+        if len(self._replay_buffer) < self._start_timesteps:
             return
         iterator = self._prepare_iterator(self._replay_buffer)
         for _ in range(self._gradient_steps):
