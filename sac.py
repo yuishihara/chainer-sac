@@ -53,6 +53,7 @@ class SAC(object):
     def train(self, env):
         if not self._initialized:
             self._initialize_target_networks()
+            self._initialized = True
         for _ in range(self._environment_steps):
             experience = self._perform_environment_step(env)
             self._replay_buffer.append(experience)
@@ -138,26 +139,36 @@ class SAC(object):
         non_terminal = F.reshape(
             non_terminal, shape=(*non_terminal.shape, 1))
 
-        with chainer.using_config('enable_backprop', False), chainer.using_config('train', False):
-            pi_action, log_pi = self._pi.action_with_log_pi(s_current)
-            log_pi = F.reshape(log_pi, shape=(*log_pi.shape, 1))
-            
-            q1 = self._q1(s_current, pi_action)
-            q2 = self._q2(s_current, pi_action)
+        pi_action, log_pi = self._pi.action_with_log_pi(s_current)
+        log_pi = F.reshape(log_pi, shape=(*log_pi.shape, 1))
 
-            min_q = F.minimum(q1, q2)
+        q1 = self._q1(s_current, pi_action)
+        q2 = self._q2(s_current, pi_action)
+        min_q = F.minimum(q1, q2)
 
-            target_v = min_q - log_pi
-
+        v_target = min_q - log_pi
+        v_target.unchain()
         v = self._v(s_current)
-        v_loss = 0.5 * F.mean_squared_error(v, target_v)
 
+        # update v
+        v_loss = 0.5 * F.mean_squared_error(v_target, v)
         self._v_optimizer.target.cleargrads()
         v_loss.backward()
-        v_loss.unchain_backward()
         self._v_optimizer.update()
 
+        # update pi
+        # Original implementation uses q1 as target instead of min_q
+        pi_loss = F.mean(log_pi - q1)
+        self._pi_optimizer.target.cleargrads()
+        pi_loss.backward()
+        self._pi_optimizer.update()
+       
+        v_loss.unchain_backward()
+        pi_loss.unchain_backward()
+
+        # update q functions
         q_target = r + self._gamma * non_terminal * self._v_target(s_next)
+        q_target.unchain()
         q1 = self._q1(s_current, action)
         q2 = self._q2(s_current, action)
         q1_loss = 0.5 * F.mean_squared_error(q_target, q1)
@@ -171,20 +182,8 @@ class SAC(object):
         self._q1_optimizer.update()
         self._q2_optimizer.update()
 
-        pi_action, log_pi = self._pi.action_with_log_pi(s_current)
-        log_pi = F.reshape(log_pi, shape=(*log_pi.shape, 1))
-
-        q1 = self._q1(s_current, pi_action)
-        q2 = self._q2(s_current, pi_action)
-        min_q = F.minimum(q1, q2)
-
-        pi_loss = F.mean(log_pi - min_q)
-        self._pi_optimizer.target.cleargrads()
-        pi_loss.backward()
-        self._pi_optimizer.update()
-
         self._update_target_network(self._v_target, self._v, self._tau)
- 
+
     def _act_with_policy(self, env, s, deterministic=False):
         with chainer.using_config('train', False), \
                 chainer.using_config('enable_backprop', False):
@@ -208,7 +207,6 @@ class SAC(object):
 
     def _initialize_target_networks(self):
         self._update_target_network(self._v_target, self._v, 1.0)
-        self._initialized = True
 
     def _update_target_network(self, target, origin, tau):
         for target_param, origin_param in zip(target.params(), origin.params()):

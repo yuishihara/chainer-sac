@@ -86,6 +86,7 @@ class SAC(object):
     def train(self, env):
         if not self._initialized:
             self._initialize_target_networks()
+            self._initialized = True
         for _ in range(self._environment_steps):
             experience = self._perform_environment_step(env)
             self._replay_buffer.append(experience)
@@ -244,7 +245,6 @@ class SAC(object):
     def _initialize_target_networks(self):
         self._update_target_network(self._target_q1, self._q1, 1.0)
         self._update_target_network(self._target_q2, self._q2, 1.0)
-        self._initialized = True
 
     def _update_target_network(self, target, origin, tau):
         for target_param, origin_param in zip(target.params(), origin.params()):
