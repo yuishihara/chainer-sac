@@ -181,7 +181,7 @@ class SAC(object):
 
             min_q = F.minimum(target_q1, target_q2)
 
-            q_target = r + self._gamma * non_terminal * min_q - self._alpha.exp() * log_pi
+            q_target = r + self._gamma * non_terminal * (min_q - self._alpha.exp() * log_pi)
 
         q1 = self._q1(s_current, action)
         q2 = self._q2(s_current, action)
