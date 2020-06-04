@@ -139,13 +139,13 @@ class SAC(object):
             non_terminal, shape=(*non_terminal.shape, 1))
 
         with chainer.using_config('enable_backprop', False), chainer.using_config('train', False):
-            q1 = self._q1(s_current, action)
-            q2 = self._q2(s_current, action)
-
-            min_q = F.minimum(q1, q2)
-
             pi_action, log_pi = self._pi.action_with_log_pi(s_current)
             log_pi = F.reshape(log_pi, shape=(*log_pi.shape, 1))
+            
+            q1 = self._q1(s_current, pi_action)
+            q2 = self._q2(s_current, pi_action)
+
+            min_q = F.minimum(q1, q2)
 
             target_v = min_q - log_pi
 
@@ -158,6 +158,8 @@ class SAC(object):
         self._v_optimizer.update()
 
         q_target = r + self._gamma * non_terminal * self._v_target(s_next)
+        q1 = self._q1(s_current, action)
+        q2 = self._q2(s_current, action)
         q1_loss = 0.5 * F.mean_squared_error(q_target, q1)
         q2_loss = 0.5 * F.mean_squared_error(q_target, q2)
         q_loss = q1_loss + q2_loss
