@@ -8,7 +8,7 @@ import sys
 import json
 import datetime
 
-from wrapper import NumpyFloat32Env, ScreenRenderEnv
+from wrapper import NumpyFloat32Env, ScreenRenderEnv, NormalizedActionEnv
 
 from tensorboardX import SummaryWriter
 
@@ -20,6 +20,7 @@ from models.critics import QFunction, VFunction
 
 def build_env(args):
     env = gym.make(args.env)
+    env = NormalizedActionEnv(env)
     env = NumpyFloat32Env(env)
     if args.render:
         env = ScreenRenderEnv(env)

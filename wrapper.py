@@ -1,4 +1,5 @@
 import gym
+import gym.spaces
 from gym.wrappers.monitor import Monitor
 
 import numpy as np
@@ -29,6 +30,17 @@ class ScreenRenderEnv(gym.Wrapper):
         state = self.env.reset()
         self.env.render()
         return state
+
+
+class NormalizedActionEnv(gym.ActionWrapper):
+    def __init__(self, env):
+        assert isinstance(env.action_space, gym.spaces.Box)
+
+    def action(self, action):
+        action = action.copy()
+        action += 1
+        action *= (self.env.action_space.high - self.env.action_space.low) / 2
+        return action + self.env.action_space.low
 
 
 class EveryEpisodeMonitor(Monitor):
