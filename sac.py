@@ -14,7 +14,8 @@ from chainer.dataset import concat_examples
 
 class SAC(object):
     def __init__(self, v_func_builder, q_func_builder, pi_builder, state_dim, action_dim, *,
-                 gamma=0.99, tau=0.005, lr=3.0e-4, batch_size=256, environment_steps=1, gradient_steps=1, start_timesteps=10000, device=-1):
+                 gamma=0.99, tau=0.005, lr=3.0e-4, batch_size=256, environment_steps=1, 
+                 gradient_steps=1, start_timesteps=10000, reward_scale=5.0, device=-1):
         self._v = v_func_builder(state_dim)
         self._v_target = v_func_builder(state_dim)
         self._q1 = q_func_builder(state_dim, action_dim)
@@ -45,6 +46,7 @@ class SAC(object):
         self._gradient_steps = gradient_steps
         self._batch_size = batch_size
         self._start_timesteps = start_timesteps
+        self._reward_scale = reward_scale
 
         self._state = None
         self._replay_buffer = deque(maxlen=1000000)
@@ -162,7 +164,7 @@ class SAC(object):
         self._pi_optimizer.target.cleargrads()
         pi_loss.backward()
         self._pi_optimizer.update()
-       
+
         v_loss.unchain_backward()
         pi_loss.unchain_backward()
 
@@ -189,7 +191,7 @@ class SAC(object):
                 chainer.using_config('enable_backprop', False):
             a = self._compute_action(s, deterministic=deterministic)
             s_next, r, done, _ = env.step(a)
-            return s, a, r, s_next, done
+            return s, a, r * self._reward_scale, s_next, done
 
     def _compute_action(self, s, deterministic=False):
         state = chainer.Variable(np.reshape(s, newshape=(1, ) + s.shape))

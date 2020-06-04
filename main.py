@@ -145,6 +145,7 @@ def start_training(args):
             environment_steps=args.environment_steps,
             gradient_steps=args.gradient_steps,
             start_timesteps=args.start_timesteps,
+            reward_scale=args.reward_scale,
             device=args.gpu)
     load_params(sac, args)
 
@@ -189,6 +190,7 @@ def main():
     parser.add_argument('--environment-steps', type=int, default=1)
     parser.add_argument('--gradient-steps', type=int, default=1)
     parser.add_argument('--evaluation-interval', type=float, default=5000)
+    parser.add_argument('--reward-scale', type=float, default=5.0)
 
     args = parser.parse_args()
 
