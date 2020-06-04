@@ -101,7 +101,7 @@ class SAC(object):
             s = env.reset()
             episode_return = 0
             while True:
-                a = self._compute_action(s)
+                a = self._compute_action(s, deterministic=True)
                 s, r, done, _ = env.step(a)
                 episode_return += r
                 if done:
@@ -220,19 +220,22 @@ class SAC(object):
         self._update_target_network(self._target_q1, self._q1, self._tau)
         self._update_target_network(self._target_q2, self._q2, self._tau)
 
-    def _act_with_policy(self, env, s):
+    def _act_with_policy(self, env, s, deterministic=False):
         with chainer.using_config('train', False), \
                 chainer.using_config('enable_backprop', False):
-            a = self._compute_action(s)
+            a = self._compute_action(s, deterministic=deterministic)
             s_next, r, done, _ = env.step(a)
             return s, a, r, s_next, done
 
-    def _compute_action(self, s):
+    def _compute_action(self, s, deterministic=False):
         state = chainer.Variable(np.reshape(s, newshape=(1, ) + s.shape))
         if not self._device < 0:
             state.to_device(self._device)
 
-        a = self._pi(state)
+        if deterministic:
+            a = self._pi(state)
+        else:
+            a = self._pi._sample(state)
         if not self._device < 0:
             a.to_cpu()
 

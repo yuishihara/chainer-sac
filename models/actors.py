@@ -28,6 +28,10 @@ class MujocoActor(_Actor):
 
     def __call__(self, s):
         mu, ln_var = self._mu_and_ln_var(s)
+        return mu
+    
+    def _sample(self, s):
+        mu, ln_var = self._mu_and_ln_var(s)
         x = F.gaussian(mu, ln_var)
         y = F.tanh(x)
         return y
