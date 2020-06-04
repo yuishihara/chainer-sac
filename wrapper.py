@@ -34,6 +34,7 @@ class ScreenRenderEnv(gym.Wrapper):
 
 class NormalizedActionEnv(gym.ActionWrapper):
     def __init__(self, env):
+        super(NormalizedActionEnv, self).__init__(env)
         assert isinstance(env.action_space, gym.spaces.Box)
 
     def action(self, action):
