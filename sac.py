@@ -2,6 +2,8 @@ import numpy as np
 
 import pathlib
 
+from collections import deque
+
 import chainer
 import chainer.functions as F
 from chainer import iterators
@@ -44,7 +46,7 @@ class SAC(object):
         self._batch_size = batch_size
 
         self._state = None
-        self._replay_buffer = []
+        self._replay_buffer = deque(maxlen=100000)
         self._initialized = False
 
     def train(self, env):
@@ -135,16 +137,16 @@ class SAC(object):
         non_terminal = F.reshape(
             non_terminal, shape=(*non_terminal.shape, 1))
 
-        q1 = self._q1(s_current, action)
-        q2 = self._q2(s_current, action)
+        with chainer.using_config('enable_backprop', False), chainer.using_config('train', False):
+            q1 = self._q1(s_current, action)
+            q2 = self._q2(s_current, action)
 
-        min_q = F.minimum(q1, q2)
+            min_q = F.minimum(q1, q2)
 
-        pi_action, log_pi = self._pi.action_with_log_pi(s_current)
-        log_pi = F.reshape(log_pi, shape=(*log_pi.shape, 1))
+            pi_action, log_pi = self._pi.action_with_log_pi(s_current)
+            log_pi = F.reshape(log_pi, shape=(*log_pi.shape, 1))
 
-        target_v = min_q - log_pi
-        target_v.unchain()
+            target_v = min_q - log_pi
 
         v = self._v(s_current)
         v_loss = 0.5 * F.mean_squared_error(v, target_v)
