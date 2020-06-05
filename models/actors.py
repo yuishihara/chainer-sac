@@ -18,13 +18,13 @@ class _Actor(chainer.Chain):
 
 
 class MujocoActor(_Actor):
-    def __init__(self, state_dim, action_dim):
+    def __init__(self, state_dim, action_dim, initialW=chainer.initializers.GlorotUniform()):
         super(MujocoActor, self).__init__()
         with self.init_scope():
-            self._linear1 = L.Linear(in_size=(state_dim), out_size=256)
-            self._linear2 = L.Linear(in_size=256, out_size=256)
-            self._linear_mu = L.Linear(in_size=256, out_size=action_dim)
-            self._linear_ln_var = L.Linear(in_size=256, out_size=action_dim)
+            self._linear1 = L.Linear(in_size=(state_dim), out_size=256, initialW=initialW)
+            self._linear2 = L.Linear(in_size=256, out_size=256, initialW=initialW)
+            self._linear_mu = L.Linear(in_size=256, out_size=action_dim, initialW=initialW)
+            self._linear_ln_var = L.Linear(in_size=256, out_size=action_dim, initialW=initialW)
 
     def __call__(self, s):
         mu, ln_var = self._mu_and_ln_var(s)
@@ -38,12 +38,13 @@ class MujocoActor(_Actor):
 
     def action_with_log_pi(self, s):
         mu, ln_var = self._mu_and_ln_var(s)
+        # Original code clips the log_sigma between [-20, 2]
+        # But ln_var is 2 * log_sigma. Therefore clipping it to [-40, 4]  
+        ln_var = F.clip(ln_var, -40, 4)
         x = F.gaussian(mu, ln_var)
         # log_pi
         # = log(N(x|mu, var)*(arctanh(tanh(x))')
         # = logN(x|mu, var) + log(arctanh(tanh(x))')
-        mu = chainer.Variable(mu.array)
-        ln_var = chainer.Variable(ln_var.array)
         log_pi = \
             self._log_normal(x, mu, F.exp(ln_var), ln_var) - \
             self._forward_log_det_jacobian(x)

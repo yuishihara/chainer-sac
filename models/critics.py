@@ -16,12 +16,13 @@ class _Critic(chainer.Chain):
 
 
 class VFunction(_Critic):
-    def __init__(self, state_dim):
+    def __init__(self, state_dim, initialW=chainer.initializers.GlorotUniform()):
         super(VFunction, self).__init__()
         with self.init_scope():
-            self._linear1 = L.Linear(in_size=(state_dim), out_size=256)
-            self._linear2 = L.Linear(in_size=256, out_size=256)
-            self._linear3 = L.Linear(in_size=256, out_size=1)
+            self._linear1 = L.Linear(
+                in_size=(state_dim), out_size=256, initialW=initialW)
+            self._linear2 = L.Linear(in_size=256, out_size=256, initialW=initialW)
+            self._linear3 = L.Linear(in_size=256, out_size=1, initialW=initialW)
 
     def __call__(self, s):
         h = self._linear1(s)
@@ -32,13 +33,13 @@ class VFunction(_Critic):
 
 
 class QFunction(_Critic):
-    def __init__(self, state_dim, action_dim):
+    def __init__(self, state_dim, action_dim, initialW=chainer.initializers.GlorotUniform()):
         super(QFunction, self).__init__()
         with self.init_scope():
             self._linear1 = L.Linear(
-                in_size=(state_dim+action_dim), out_size=256)
-            self._linear2 = L.Linear(in_size=256, out_size=256)
-            self._linear3 = L.Linear(in_size=256, out_size=1)
+                in_size=(state_dim + action_dim), out_size=256, initialW=initialW)
+            self._linear2 = L.Linear(in_size=256, out_size=256, initialW=initialW)
+            self._linear3 = L.Linear(in_size=256, out_size=1, initialW=initialW)
 
     def __call__(self, s, a):
         x = F.concat((s, a))
