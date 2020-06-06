@@ -52,11 +52,11 @@ class MujocoActor(_Actor):
         h = F.relu(h)
         h = self._linear2(h)
         h = F.relu(h)
-        mu_and_sigma = self._linear3(h)
-        mu, ln_sigma = F.split_axis(x, 2, axis=1)
+        h = self._linear3(h)
+        mu, ln_sigma = F.split_axis(h, 2, axis=1)
         assert mu.shape == ln_sigma.shape
-        ln_sigma = F.clip(ln_var, -20, 2)
-        ln_var = 2 * ln_var
+        ln_sigma = F.clip(ln_sigma, -20, 2)
+        ln_var = 2 * ln_sigma
         return mu, ln_var
 
     def _log_normal(self, x, mean, var, ln_var):
