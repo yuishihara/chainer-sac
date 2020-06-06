@@ -27,7 +27,7 @@ class MujocoActor(_Actor):
 
     def __call__(self, s):
         mu, ln_var = self._mu_and_ln_var(s)
-        return mu
+        return F.tanh(mu)
     
     def _sample(self, s):
         mu, ln_var = self._mu_and_ln_var(s)
@@ -55,14 +55,14 @@ class MujocoActor(_Actor):
         h = self._linear3(h)
         mu, ln_sigma = F.split_axis(h, 2, axis=1)
         assert mu.shape == ln_sigma.shape
-        ln_sigma = F.clip(ln_sigma, -20, 2)
-        ln_var = 2 * ln_sigma
+        ln_sigma = F.clip(ln_sigma, -20.0, 2.0)
+        ln_var = 2.0 * ln_sigma
         return mu, ln_var
 
     def _log_normal(self, x, mean, var, ln_var):
         # log N(x|mu, var)
         # = -0.5*log2*pi - 0.5 * ln_var - 0.5 * (x-mu)**2 / var
-        return -0.5 * np.log(2 * np.pi) - 0.5 * ln_var - 0.5 * (x-mean) ** 2 / var
+        return -0.5 * np.log(2.0 * np.pi) - 0.5 * ln_var - 0.5 * ((x-mean) ** 2.0) / var
 
     def _forward_log_det_jacobian(self, x):
         # arctanh(y)' = 1/(1 - y^2) (y=tanh(x))
