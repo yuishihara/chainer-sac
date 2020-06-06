@@ -20,8 +20,8 @@ from models.critics import QFunction, VFunction
 
 def build_env(args):
     env = gym.make(args.env)
-    env = NormalizedActionEnv(env)
     env = NumpyFloat32Env(env)
+    env = NormalizedActionEnv(env)
     if args.render:
         env = ScreenRenderEnv(env)
     return env

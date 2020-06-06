@@ -23,8 +23,7 @@ class MujocoActor(_Actor):
         with self.init_scope():
             self._linear1 = L.Linear(in_size=(state_dim), out_size=256, initialW=initialW)
             self._linear2 = L.Linear(in_size=256, out_size=256, initialW=initialW)
-            self._linear_mu = L.Linear(in_size=256, out_size=action_dim, initialW=initialW)
-            self._linear_ln_var = L.Linear(in_size=256, out_size=action_dim, initialW=initialW)
+            self._linear3 = L.Linear(in_size=256, out_size=action_dim*2, initialW=initialW)
 
     def __call__(self, s):
         mu, ln_var = self._mu_and_ln_var(s)
@@ -38,9 +37,6 @@ class MujocoActor(_Actor):
 
     def action_with_log_pi(self, s):
         mu, ln_var = self._mu_and_ln_var(s)
-        # Original code clips the log_sigma between [-20, 2]
-        # But ln_var is 2 * log_sigma. Therefore clipping it to [-40, 4]  
-        ln_var = F.clip(ln_var, -40, 4)
         x = F.gaussian(mu, ln_var)
         # log_pi
         # = log(N(x|mu, var)*(arctanh(tanh(x))')
@@ -56,9 +52,11 @@ class MujocoActor(_Actor):
         h = F.relu(h)
         h = self._linear2(h)
         h = F.relu(h)
-        mu = self._linear_mu(h)
-        ln_var = self._linear_ln_var(h)
-
+        mu_and_sigma = self._linear3(h)
+        mu, ln_sigma = F.split_axis(x, 2, axis=1)
+        assert mu.shape == ln_sigma.shape
+        ln_sigma = F.clip(ln_var, -20, 2)
+        ln_var = 2 * ln_var
         return mu, ln_var
 
     def _log_normal(self, x, mean, var, ln_var):
